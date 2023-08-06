@@ -1,0 +1,13 @@
+version: '2.3'
+
+services:
+  cloudwatch-iot:
+    build: .
+    restart: always
+    network_mode: host
+    privileged: true
+    volumes:
+      - .:/app
+      - /dev:/dev
+    env_file:
+      - .env

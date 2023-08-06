@@ -1,0 +1,6 @@
+boto3 < 2
+boto3-stubs[cloudwatch] < 2
+pydantic < 2
+pythonping < 2
+httpx < 1
+minimalmodbus < 3
