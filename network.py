@@ -1,3 +1,14 @@
+import asyncio
+import functools
+import logging
+import time
+
+import httpx
+from pythonping import ping
+
+
+
+ping('localhost')  # ensure script has root permissions
 
 
 async def test_tcp(host: str, port: int, payload: str='') -> bool:
