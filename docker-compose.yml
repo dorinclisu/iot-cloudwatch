@@ -1,7 +1,7 @@
 version: '2.3'
 
 services:
-  cloudwatch-iot:
+  agent:
     build: .
     restart: always
     network_mode: host
