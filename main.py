@@ -27,15 +27,15 @@ class Env(BaseSettings):
     aws_default_region:    str
 
     aws_metric_namespace: str
-    aws_metric_name:      str
 
     aws_metric_name_network: str
 
     internet_host:        str
+    internet_timeout:     int = 5
 
     site_id:              str
     site_devices:   list[str] = []
-    device_timeout:       int = 1
+    net_timeout:          int = 1
 
     aws_metric_name_voltage: str
     aws_metric_name_current: str
@@ -99,7 +99,7 @@ async def check_devices(timeout: float=1) -> SiteStatus:
     status = SiteStatus(
         id=env.site_id,
         timestamp=datetime.utcnow(),
-        internet_ping=await test_connection(env.internet_host, timeout=timeout)
+        internet_ping=await test_connection(env.internet_host, timeout=env.internet_timeout)
     )
 
     logging.info('Checking devices status ...')
@@ -151,10 +151,10 @@ async def check_devices(timeout: float=1) -> SiteStatus:
 def report_metrics(status: SiteStatus) -> None:
     def generate_metric_data(device: DeviceStatus) -> MetricDatumTypeDef:
         return {
-            'MetricName': env.aws_metric_name,
+            'MetricName': env.aws_metric_name_network,
             'Dimensions': [
                 {
-                    'Name': 'SiteDevice',
+                    'Name': 'Device',
                     'Value': f'{status.id}/{device.name}'
                 },
             ],
@@ -169,7 +169,7 @@ def report_metrics(status: SiteStatus) -> None:
                 'MetricName': env.aws_metric_name_voltage,
                 'Dimensions': [
                     {
-                        'Name': 'SiteDevice',
+                        'Name': 'Device',
                         'Value': f'{status.id}/{device.name}'
                     },
                 ],
@@ -181,7 +181,7 @@ def report_metrics(status: SiteStatus) -> None:
                 'MetricName': env.aws_metric_name_current,
                 'Dimensions': [
                     {
-                        'Name': 'SiteDevice',
+                        'Name': 'Device',
                         'Value': f'{status.id}/{device.name}'
                     },
                 ],
@@ -196,7 +196,7 @@ def report_metrics(status: SiteStatus) -> None:
                     'MetricName': env.aws_metric_name_energy,
                     'Dimensions': [
                         {
-                            'Name': 'SiteDevice',
+                            'Name': 'Device',
                             'Value': f'{status.id}/{device.name}'
                         },
                     ],
@@ -214,7 +214,7 @@ def report_metrics(status: SiteStatus) -> None:
                 'MetricName': env.aws_metric_name_switch,
                 'Dimensions': [
                         {
-                            'Name': 'SiteDevice',
+                            'Name': 'Device',
                             'Value': f'{status.id}/{switch_device.name}'
                         },
                     ],
@@ -231,7 +231,7 @@ def report_metrics(status: SiteStatus) -> None:
                 'MetricName': env.aws_metric_name_relay,
                 'Dimensions': [
                         {
-                            'Name': 'SiteDevice',
+                            'Name': 'Device',
                             'Value': f'{status.id}/{relay_device.name}'
                         },
                     ],
@@ -251,7 +251,7 @@ def report_metrics(status: SiteStatus) -> None:
     cw.put_metric_data(
         Namespace=env.aws_metric_namespace,
         MetricData=[
-            generate_metric_data(DeviceStatus(name='internet', ping=status.internet_ping)),
+            generate_metric_data(DeviceStatus(name='Internet', ping=status.internet_ping)),
             *metric_data_channels,
             *electric_metric_data_channels,
             *generate_switch_metrics_data(),
@@ -298,7 +298,7 @@ async def main() -> None:
         if (minute - last_minute) % 60 >= period_m:
             last_minute = minute
 
-            status = await check_devices(env.device_timeout)
+            status = await check_devices(env.net_timeout)
             logging.debug(status)
             queue.append(status)
 

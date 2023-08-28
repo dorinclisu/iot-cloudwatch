@@ -37,7 +37,7 @@ async def test_tcp(host: str, port: int, payload: str='') -> bool:
 
 async def test_connection(uri: str, timeout: float=1) -> float:
     """
-    Return time in seconds to make the request (if http) or ping ICMP, return -1 if timeout or other connection error.
+    Return time in seconds to make the request (if http) or ping ICMP, return value of timeout or -1 if other connection error.
     """
     if uri.startswith('http://'):
         async with httpx.AsyncClient(timeout=timeout) as client:
@@ -46,7 +46,11 @@ async def test_connection(uri: str, timeout: float=1) -> float:
                 await client.get(uri)
                 return time.monotonic() - t
 
+            except httpx.TimeoutException:
+                return timeout
+
             except httpx.TransportError:
+                logging.debug(f'Handled exception for "{uri}"', exc_info=True)
                 return -1
 
     elif '://' in uri:
@@ -58,7 +62,7 @@ async def test_connection(uri: str, timeout: float=1) -> float:
             resp = await loop.run_in_executor(None, functools.partial(ping, target=uri, count=1, timeout=timeout))
 
             if not resp.success():
-                return -1
+                return timeout
 
             return float(resp.rtt_max)
         except:
