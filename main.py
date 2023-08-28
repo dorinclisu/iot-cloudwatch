@@ -22,27 +22,28 @@ logging.getLogger('botocore').setLevel(logging.WARNING)
 
 
 class Env(BaseSettings):
-    aws_access_key_id:     str
-    aws_secret_access_key: str
-    aws_default_region:    str
+    aws_access_key_id:       str
+    aws_secret_access_key:   str
+    aws_default_region:      str
 
-    aws_metric_namespace: str
+    aws_metric_namespace:    str
 
     aws_metric_name_network: str
-
-    internet_host:        str
-    internet_timeout:     int = 5
-
-    site_id:              str
-    site_devices:   list[str] = []
-    net_timeout:          int = 1
 
     aws_metric_name_voltage: str
     aws_metric_name_current: str
     aws_metric_name_energy:  str
+
     aws_metric_name_switch:  str
     aws_metric_name_relay:   str
 
+    internet_host:           str
+    internet_timeout:        int = 5
+    network_timeout:         int = 1
+
+    site_id:                 str
+
+    network_devices:   list[str] = []
     pzem_devices: dict[str, int] = {}
     shelly_devices:    list[str] = []
 
@@ -106,13 +107,13 @@ async def check_devices(timeout: float=1) -> SiteStatus:
 
     tasks: list[asyncio.Task[float]] = []
 
-    for device_name in env.site_devices:
+    for device_name in env.network_devices:
         task = asyncio.create_task(test_connection(uri=device_name, timeout=timeout))
         tasks.append(task)
 
     pings: list[float] = await asyncio.gather(*tasks)
 
-    for ping, device_name in zip(pings, env.site_devices):
+    for ping, device_name in zip(pings, env.network_devices):
         device = DeviceStatus(
             name=device_name,
             ping=ping
@@ -298,7 +299,7 @@ async def main() -> None:
         if (minute - last_minute) % 60 >= period_m:
             last_minute = minute
 
-            status = await check_devices(env.net_timeout)
+            status = await check_devices(env.network_timeout)
             logging.debug(status)
             queue.append(status)
 
